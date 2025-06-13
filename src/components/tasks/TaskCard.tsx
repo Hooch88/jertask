@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSubtasks } from '../../hooks/useFirestore';
 import { updateSubtask, createSubtask } from '../../services/firestore';
@@ -6,11 +6,15 @@ import { ConfirmationModal } from '../common/ConfirmationModal';
 import type { Task, Subtask } from '../../types';
 import styles from './TaskCard.module.css';
 import { Timestamp } from 'firebase/firestore';
+import { useApp } from '../../contexts/AppContext';
+import { ContextMenu } from '../common/ContextMenu';
+import type { MenuItem } from '../common/ContextMenu';
+import { useContextMenu } from '../../hooks/useContextMenu';
 
 interface TaskCardProps {
   task: Task;
   onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void;
-  onTaskDelete?: (taskId: string) => Promise<void>;
+  onTaskDelete?: (taskId: string) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -38,14 +42,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
   const dueDateInputRef = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  // Reset edited values when task changes
-  useEffect(() => {
-    setEditedTitle(task.title);
-    setEditedDescription(task.description || '');
-    setEditedPriority(task.priority);
-    setEditedDueDate(task.dueDate ? Timestamp.fromDate(task.dueDate.toDate()).toDate().toISOString().split('T')[0] : '');
-  }, [task.title, task.description, task.priority, task.dueDate]);
+  const { showConfirmation } = useApp();
+
+  const {
+    isOpen: isContextMenuOpen,
+    position: contextMenuPosition,
+    handleContextMenu,
+    closeMenu
+  } = useContextMenu();
 
   const getPriorityColor = (priority: Task['priority']) => {
     switch (priority) {
@@ -58,10 +64,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
-      case 'todo': return '📋';
-      case 'in-progress': return '⏳';
-      case 'done': return '✅';
-      default: return '📋';
+      case 'todo':
+        return '📋';
+      case 'in-progress':
+        return '⏳';
+      case 'done':
+        return '✅';
+      default:
+        return '📋';
     }
   };
 
@@ -82,70 +92,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     }, 0);
   };
 
-  const handleTitleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      await saveTitle();
-    } else if (e.key === 'Escape') {
-      cancelTitleEdit();
-    }
-  };
-
-  const handleDescriptionKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      await saveDescription();
-    } else if (e.key === 'Escape') {
-      cancelDescriptionEdit();
-    }
-  };
-
-  const saveTitle = async () => {
-    if (editedTitle.trim() === task.title) {
-      setIsEditingTitle(false);
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await onTaskUpdate(task.id, { title: editedTitle.trim() });
-      setIsEditingTitle(false);
-    } catch (error) {
-      console.error('Failed to update title:', error);
-      setEditedTitle(task.title); // Reset on error
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const saveDescription = async () => {
-    if (editedDescription === task.description) {
-      setIsEditingDescription(false);
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      await onTaskUpdate(task.id, { description: editedDescription.trim() });
-      setIsEditingDescription(false);
-    } catch (error) {
-      console.error('Failed to update description:', error);
-      setEditedDescription(task.description || ''); // Reset on error
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const cancelTitleEdit = () => {
-    setEditedTitle(task.title);
-    setIsEditingTitle(false);
-  };
-
-  const cancelDescriptionEdit = () => {
-    setEditedDescription(task.description || '');
-    setIsEditingDescription(false);
-  };
-
   const handleTitleBlur = () => {
     saveTitle();
   };
@@ -160,12 +106,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const handleStatusChange = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const statusOrder: Task['status'][] = ['todo', 'in-progress', 'done'];
-    const currentIndex = statusOrder.indexOf(task.status);
-    const nextIndex = (currentIndex + 1) % statusOrder.length;
-    const nextStatus = statusOrder[nextIndex];
-    
-    onTaskUpdate(task.id, { status: nextStatus });
+    if (onTaskUpdate) {
+      const newStatus = task.status === 'todo' ? 'in-progress' : 
+                       task.status === 'in-progress' ? 'done' : 'todo';
+      onTaskUpdate(task.id, { status: newStatus });
+    }
   };
 
   const handleSubtaskToggle = async (subtaskId: string, completed: boolean) => {
@@ -198,7 +143,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowDeleteModal(true);
+    if (onTaskDelete) {
+      setShowDeleteModal(true);
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -220,7 +167,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     setEditedPriority(newPriority);
     setIsPrioritySaving(true);
     try {
-      await onTaskUpdate(task.id, { priority: newPriority });
+      if (onTaskUpdate) {
+        await onTaskUpdate(task.id, { priority: newPriority });
+      }
     } catch (error) {
       setEditedPriority(task.priority); // revert on error
     } finally {
@@ -233,8 +182,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     setEditedDueDate(value);
     setIsDueDateSaving(true);
     try {
-      const newDueDate = value ? Timestamp.fromDate(new Date(value)) : undefined;
-      await onTaskUpdate(task.id, { dueDate: newDueDate });
+      const newDueDate = value ? Timestamp.fromDate(new Date(value)) : null;
+      if (onTaskUpdate) {
+        await onTaskUpdate(task.id, { dueDate: newDueDate });
+      }
     } catch (error) {
       setEditedDueDate(task.dueDate ? Timestamp.fromDate(task.dueDate.toDate()).toDate().toISOString().split('T')[0] : '');
     } finally {
@@ -246,7 +197,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     setEditedDueDate('');
     setIsDueDateSaving(true);
     try {
-      await onTaskUpdate(task.id, { dueDate: undefined });
+      if (onTaskUpdate) {
+        await onTaskUpdate(task.id, { dueDate: null });
+      }
     } catch (error) {
       setEditedDueDate(task.dueDate ? Timestamp.fromDate(task.dueDate.toDate()).toDate().toISOString().split('T')[0] : '');
     } finally {
@@ -315,8 +268,126 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     setIsEditingDueDate(false);
   };
 
+  const saveTitle = async () => {
+    if (!editedTitle.trim()) return;
+    
+    setIsSaving(true);
+    try {
+      if (onTaskUpdate) {
+        await onTaskUpdate(task.id, { title: editedTitle.trim() });
+      }
+      setIsEditingTitle(false);
+    } catch (error) {
+      setEditedTitle(task.title);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveDescription = async () => {
+    setIsSaving(true);
+    try {
+      if (onTaskUpdate) {
+        await onTaskUpdate(task.id, { description: editedDescription.trim() });
+      }
+      setIsEditingDescription(false);
+    } catch (error) {
+      setEditedDescription(task.description || '');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onTaskDelete) return;
+    setIsDeleting(true);
+    try {
+      await onTaskDelete(task.id);
+    } catch (error) {
+      // handle error if needed
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const contextMenuItems: MenuItem[] = [
+    {
+      label: 'Edit',
+      icon: '✏️',
+      submenu: [
+        {
+          label: 'Edit Title',
+          icon: '📝',
+          action: () => setIsEditingTitle(true)
+        },
+        {
+          label: 'Edit Description',
+          icon: '📄',
+          action: () => setIsEditingDescription(true)
+        }
+      ]
+    },
+    {
+      label: 'Change Priority',
+      icon: '⭐',
+      submenu: [
+        {
+          label: 'High',
+          icon: '🔴',
+          action: () => onTaskUpdate?.(task.id, { priority: 'high' })
+        },
+        {
+          label: 'Medium',
+          icon: '🟡',
+          action: () => onTaskUpdate?.(task.id, { priority: 'medium' })
+        },
+        {
+          label: 'Low',
+          icon: '🟢',
+          action: () => onTaskUpdate?.(task.id, { priority: 'low' })
+        }
+      ]
+    },
+    {
+      label: 'Change Status',
+      icon: '🔄',
+      submenu: [
+        {
+          label: 'To Do',
+          icon: '📋',
+          action: () => onTaskUpdate?.(task.id, { status: 'todo' })
+        },
+        {
+          label: 'In Progress',
+          icon: '⏳',
+          action: () => onTaskUpdate?.(task.id, { status: 'in-progress' })
+        },
+        {
+          label: 'Done',
+          icon: '✅',
+          action: () => onTaskUpdate?.(task.id, { status: 'done' })
+        }
+      ]
+    },
+    {
+      label: 'Set Due Date',
+      icon: '📅',
+      action: () => setIsEditingDueDate(true)
+    },
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      action: () => onTaskDelete?.(task.id)
+    }
+  ];
+
   return (
-    <div className={`${styles.card} ${styles[`status-${task.status}`]}`}>
+    <div 
+      ref={cardRef}
+      className={`${styles.card} ${styles[`status-${task.status}`]}`}
+      onContextMenu={handleContextMenu}
+    >
       <div className={styles.header} onClick={toggleExpanded}>
         <div className={styles.statusSection}>
           <button 
@@ -333,7 +404,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 type="text"
                 value={editedTitle}
                 onChange={(e) => setEditedTitle(e.target.value)}
-                onKeyDown={handleTitleKeyDown}
                 onBlur={handleTitleBlur}
                 className={styles.titleInput}
                 disabled={isSaving}
@@ -348,12 +418,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 <span className={styles.editIcon}>✎</span>
               </h3>
             )}
+            
             {isEditingDescription ? (
               <textarea
                 ref={descriptionInputRef}
                 value={editedDescription}
                 onChange={(e) => setEditedDescription(e.target.value)}
-                onKeyDown={handleDescriptionKeyDown}
                 onBlur={handleDescriptionBlur}
                 className={styles.descriptionInput}
                 placeholder="Add a description..."
@@ -511,6 +581,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </span>
         </div>
       )}
+
+      <ContextMenu
+        isOpen={isContextMenuOpen}
+        position={contextMenuPosition}
+        items={contextMenuItems}
+        onClose={closeMenu}
+      />
 
       <ConfirmationModal
         isOpen={showDeleteModal}

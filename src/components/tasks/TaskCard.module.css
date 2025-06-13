@@ -1,23 +1,42 @@
 .card {
-  background: var(--gradient-card);
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+  border: 2px solid transparent;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  margin-bottom: var(--spacing-lg);
   cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-card);
   width: 100%; /* Ensure full width utilization */
   max-width: none; /* Remove any width constraints */
   box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-card-hover);
-  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card.selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card:focus:not(:focus-visible) {
+  border-color: transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent), 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .card:active {
@@ -549,4 +568,185 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-style: italic;
+}
+
+.taskCard {
+  background: var(--surface-color);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.taskCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.taskHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.status {
+  cursor: pointer;
+  font-size: 1.2em;
+  transition: transform 0.2s ease;
+}
+
+.status:hover {
+  transform: scale(1.1);
+}
+
+.title {
+  flex: 1;
+  font-weight: 500;
+}
+
+.titleInput {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.titleInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+}
+
+/* Priority styles */
+.high {
+  border-left: 4px solid var(--priority-high);
+}
+
+.medium {
+  border-left: 4px solid var(--priority-medium);
+}
+
+.low {
+  border-left: 4px solid var(--priority-low);
+}
+
+/* Status styles */
+.todo {
+  background: var(--surface-color);
+}
+
+.in-progress {
+  background: var(--surface-color);
+  border-left: 4px solid var(--status-in-progress);
+}
+
+.done {
+  background: var(--surface-color);
+  opacity: 0.8;
+}
+
+.done .title {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+/* Description styles */
+.description {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+/* Due date styles */
+.dueDate {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dueDate.overdue {
+  color: var(--error-color);
+}
+
+/* Subtask styles */
+.subtasks {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.subtaskHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.subtaskList {
+  margin-left: 16px;
+}
+
+/* Context menu styles */
+.contextMenu {
+  position: fixed;
+  background: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  min-width: 200px;
+  z-index: 1000;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.menuItem:hover {
+  background-color: var(--hover-color);
+}
+
+.menuItem.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menuItem .icon {
+  font-size: 1.2em;
+}
+
+.menuItem .label {
+  flex: 1;
+}
+
+.menuItem .submenuIcon {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px;
+  min-width: 200px;
+  z-index: 1001;
 } 

@@ -11,30 +11,30 @@ import {
 } from '../services/firestore';
 import { initializeDefaultProjects } from '../services/defaultData';
 import type { AppContextType, ViewType, Project, Task } from '../types';
+import { Timestamp } from 'firebase/firestore';
 
-const AppContext = createContext<AppContextType | null>(null);
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  return context;
-};
-
-interface AppProviderProps {
-  children: React.ReactNode;
-}
-
-export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [currentView, setCurrentView] = useState<ViewType>('all');
+  const [currentView, setCurrentView] = useState<ViewType>('tasks');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   const { projects, loading: projectsLoading } = useProjects(user?.uid || null);
   const { tasks: allTasks, loading: tasksLoading } = useTasks(
-    user?.uid || null, 
+    user?.uid || null,
     selectedProjectId || undefined
   );
 
@@ -42,54 +42,26 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const getFilteredTasks = useCallback(() => {
     if (!allTasks) return [];
 
-    switch (currentView) {
-      case 'today':
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        return allTasks.filter(task => {
-          if (!task.dueDate) return false;
-          const dueDate = task.dueDate.toDate();
-          return dueDate >= today && dueDate < tomorrow;
-        });
-
-      case 'upcoming':
-        const now = new Date();
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        
-        return allTasks.filter(task => {
-          if (!task.dueDate) return false;
-          const dueDate = task.dueDate.toDate();
-          return dueDate > now && dueDate <= nextWeek;
-        });
-
-      case 'project':
-        return selectedProjectId 
-          ? allTasks.filter(task => task.projectId === selectedProjectId)
-          : allTasks;
-
-      case 'all':
-      default:
-        return allTasks;
+    if (currentView === 'tasks') {
+      return allTasks;
+    } else if (currentView === 'projects') {
+      return selectedProjectId 
+        ? allTasks.filter((task: Task) => task.projectId === selectedProjectId)
+        : allTasks;
     }
+    return allTasks;
   }, [allTasks, currentView, selectedProjectId]);
 
   const tasks = getFilteredTasks();
 
   const loading = projectsLoading || tasksLoading;
 
-  // Initialize default projects for new users - TEMPORARILY DISABLED
-  // const [hasInitialized, setHasInitialized] = useState(false);
-  
-  // useEffect(() => {
-  //   if (user?.uid && !projectsLoading && projects.length === 0 && !hasInitialized) {
-  //     setHasInitialized(true);
-  //     initializeDefaultProjects(user.uid, projects);
-  //   }
-  // }, [user?.uid, projectsLoading, hasInitialized]);
+  // Initialize default projects for new users
+  useEffect(() => {
+    if (user?.uid && projects.length === 0) {
+      initializeDefaultProjects(user.uid);
+    }
+  }, [user?.uid, projects]);
 
   const handleError = (error: unknown, message: string) => {
     console.error(message, error);
@@ -176,6 +148,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [user?.uid, tasks]);
 
+  const showConfirmation = (options: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: options.title,
+      message: options.message,
+      onConfirm: () => {
+        options.onConfirm();
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const value: AppContextType = {
     projects,
     tasks,
@@ -191,6 +179,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     createTask,
     updateTask,
     deleteTask,
+    showConfirmation
   };
 
   return (
@@ -198,4 +187,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       {children}
     </AppContext.Provider>
   );
+};
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
 }; 

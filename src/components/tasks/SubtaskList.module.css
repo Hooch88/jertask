@@ -1,0 +1,57 @@
+.subtaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 0 16px;
+}
+
+.subtaskItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.subtaskItem:hover {
+  background-color: #f5f5f5;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+}
+
+.status input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.title {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+
+.title.completed {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.titleInput {
+  flex: 1;
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  outline: none;
+}
+
+.titleInput:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+} 

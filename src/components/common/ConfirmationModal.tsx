@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import styles from './ConfirmationModal.module.css';
 
 interface ConfirmationModalProps {
@@ -24,33 +24,11 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   cancelLabel = 'Cancel',
   isLoading = false,
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      // Focus cancel button when modal opens
-      cancelButtonRef.current?.focus();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onCancel();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onCancel]);
-
   if (!isOpen) return null;
 
   return (
     <div className={styles.overlay} onClick={onCancel}>
       <div 
-        ref={modalRef}
         className={styles.modal}
         onClick={e => e.stopPropagation()}
       >
@@ -61,7 +39,6 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         )}
         <div className={styles.buttons}>
           <button
-            ref={cancelButtonRef}
             className={styles.cancelButton}
             onClick={onCancel}
             disabled={isLoading}

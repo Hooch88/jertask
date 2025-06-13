@@ -7,19 +7,19 @@ export interface Project {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   taskCount: number; // denormalized for performance
+  description?: string;
 }
 
 export interface Task {
   id: string;
   title: string;
-  description?: string;
-  projectId: string;
-  status: 'todo' | 'in-progress' | 'done';
+  description: string;
   priority: 'low' | 'medium' | 'high';
-  dueDate?: Timestamp;
+  status: 'todo' | 'in-progress' | 'done';
+  dueDate: Timestamp | null;
+  projectId: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  order: number; // for manual sorting
 }
 
 export interface Subtask {
@@ -38,7 +38,7 @@ export interface User {
 }
 
 // UI State Types
-export type ViewType = 'all' | 'today' | 'upcoming' | 'project';
+export type ViewType = 'tasks' | 'projects';
 export type GroupBy = 'status' | 'project' | 'priority';
 export type TaskStatus = Task['status'];
 export type TaskPriority = Task['priority'];
@@ -80,6 +80,11 @@ export interface AppContextType {
   selectedProjectId: string | null;
   loading: boolean;
   error: string | null;
+  showConfirmation: (options: {
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }) => void;
   setCurrentView: (view: ViewType) => void;
   setSelectedProjectId: (projectId: string | null) => void;
   createProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'taskCount'>) => Promise<void>;
