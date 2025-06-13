@@ -7,6 +7,7 @@ import styles from './TaskList.module.css';
 interface TaskListProps {
   tasks: Task[];
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
+  onTaskDelete: (taskId: string) => Promise<void>;
 }
 
 interface TaskGroup {
@@ -16,7 +17,7 @@ interface TaskGroup {
   tasks: Task[];
 }
 
-export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdate }) => {
+export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdate, onTaskDelete }) => {
   const { currentView } = useApp();
 
   const getEmptyMessage = (status: TaskStatus) => {
@@ -92,6 +93,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdate }) => {
                   key={task.id}
                   task={task}
                   onTaskUpdate={onTaskUpdate}
+                  onTaskDelete={onTaskDelete}
                 />
               ))
             )}

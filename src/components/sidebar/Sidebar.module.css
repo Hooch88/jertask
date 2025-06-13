@@ -170,7 +170,33 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  font-size: var(--font-size-sm);
+  padding: 2px 0;
+}
+
+.projectNameInput {
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px var(--spacing-xs);
+  outline: none;
+  transition: all var(--transition-base);
+  font-size: inherit;
+  color: inherit;
+  min-width: 0;
+}
+
+.projectNameInput:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-alpha);
+}
+
+/* Disabled state for input during saving */
+.projectNameInput:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: var(--color-surface-disabled);
 }
 
 .taskCount {

@@ -45,7 +45,7 @@ const LoadingScreen: React.FC = () => (
 
 export const MainApp: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { tasks, loading: appLoading, updateTask, error, currentView, selectedProjectId, projects } = useApp();
+  const { tasks, loading: appLoading, updateTask, deleteTask, error, currentView, selectedProjectId, projects } = useApp();
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
   if (authLoading) {
@@ -140,6 +140,7 @@ export const MainApp: React.FC = () => {
           <TaskList 
             tasks={tasks}
             onTaskUpdate={updateTask}
+            onTaskDelete={deleteTask}
           />
         )}
       </div>

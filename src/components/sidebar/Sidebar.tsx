@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { NewProjectModal } from '../common/NewProjectModal';
 import type { ViewType } from '../../types';
@@ -11,9 +11,15 @@ export const Sidebar: React.FC = () => {
     selectedProjectId,
     setCurrentView, 
     setSelectedProjectId,
-    deleteProject
+    deleteProject,
+    updateProject
   } = useApp();
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editedProjectName, setEditedProjectName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const projectInputRef = useRef<HTMLInputElement>(null);
 
   const navItems = [
     { id: 'all' as ViewType, label: 'All Tasks', icon: '📋' },
@@ -29,6 +35,57 @@ export const Sidebar: React.FC = () => {
   const handleProjectSelect = (projectId: string) => {
     setCurrentView('project');
     setSelectedProjectId(projectId);
+  };
+
+  const handleProjectNameDoubleClick = (projectId: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent project selection
+    setEditingProjectId(projectId);
+    setEditedProjectName(currentName);
+    // Focus and select text after the component updates
+    setTimeout(() => {
+      projectInputRef.current?.focus();
+      projectInputRef.current?.select();
+    }, 0);
+  };
+
+  const handleProjectNameKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>, projectId: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      await saveProjectName(projectId);
+    } else if (e.key === 'Escape') {
+      cancelProjectEdit();
+    }
+  };
+
+  const saveProjectName = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project || editedProjectName.trim() === project.name) {
+      setEditingProjectId(null);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateProject(projectId, { name: editedProjectName.trim() });
+      setEditingProjectId(null);
+    } catch (error) {
+      console.error('Failed to update project name:', error);
+      setEditedProjectName(project.name); // Reset on error
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelProjectEdit = () => {
+    const project = projects.find(p => p.id === editingProjectId);
+    if (project) {
+      setEditedProjectName(project.name);
+    }
+    setEditingProjectId(null);
+  };
+
+  const handleProjectNameBlur = (projectId: string) => {
+    saveProjectName(projectId);
   };
 
   const handleDeleteProject = async (projectId: string, event: React.MouseEvent) => {
@@ -98,7 +155,25 @@ export const Sidebar: React.FC = () => {
                         className={styles.projectDot} 
                         style={{ backgroundColor: project.color }}
                       />
-                      <span className={styles.projectName}>{project.name}</span>
+                      {editingProjectId === project.id ? (
+                        <input
+                          ref={projectInputRef}
+                          type="text"
+                          value={editedProjectName}
+                          onChange={(e) => setEditedProjectName(e.target.value)}
+                          onKeyDown={(e) => handleProjectNameKeyDown(e, project.id)}
+                          onBlur={() => handleProjectNameBlur(project.id)}
+                          className={styles.projectNameInput}
+                          disabled={isSaving}
+                        />
+                      ) : (
+                        <span 
+                          className={styles.projectName}
+                          onDoubleClick={(e) => handleProjectNameDoubleClick(project.id, project.name, e)}
+                        >
+                          {project.name}
+                        </span>
+                      )}
                     </div>
                     <span className={styles.taskCount}>{project.taskCount}</span>
                   </button>
